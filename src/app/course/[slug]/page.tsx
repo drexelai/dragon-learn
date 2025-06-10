@@ -22,8 +22,8 @@ const slugify = (text: string) =>
 // Converts (\latex) => $latex$, [\latex] => $$latex$$
 function normalizeMath(text: string) {
   return text
-    .replace(/\(\s*\\(.*?)\s*\)/g, (_, expr) => `$\\${expr.trim()}$`)
-    .replace(/\[\s*\\(.*?)\s*\]/g, (_, expr) => `$$\\${expr.trim()}$$`);
+    .replace(/\(\s*\\(.*?)\s*\)/g, (_, expr) => `$${expr.trim()}$`)
+    .replace(/\[\s*\\(.*?)\s*\]/g, (_, expr) => `$$${expr.trim()}$$`);
 }
 
 export default function ModulePage() {
@@ -50,13 +50,28 @@ export default function ModulePage() {
     }
   }, [params?.slug]);
 
+  useEffect(() => {
+    if (!module) return;
+
+    const tocContainer = document.getElementById("toc-placeholder");
+    if (tocContainer) {
+      tocContainer.innerHTML = module.subtopics
+        .map(
+          (sub: any) =>
+            `<a href="#${slugify(sub.title)}" class="block text-sm text-gray-700 hover:underline mb-2">${sub.title}</a>`
+        )
+        .join("");
+    }
+  }, [module]);
+
+
   if (!module) return <p className="p-6 text-gray-500">Loading module...</p>;
 
   return (
     <main className="px-6 py-10 max-w-3xl mx-auto">
       <div className="mb-8">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push("/course")}
           className="flex items-center text-sm text-blue-600 hover:underline"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
@@ -77,9 +92,13 @@ export default function ModulePage() {
         {module.subtopics.map((sub: any, i: number) => (
           <section key={i} className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold text-gray-900">
+              <h2
+                id={slugify(sub.title)}
+                className="text-2xl font-semibold text-gray-900 scroll-mt-28"
+              >
                 {sub.title}
               </h2>
+
               {sub.description && (
                 <p className="text-gray-600 mt-1">{sub.description}</p>
               )}
