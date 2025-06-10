@@ -1,13 +1,40 @@
+// app/page.tsx
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useState, useEffect } from "react";
 
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const router = useRouter();
+  const [stepIndex, setStepIndex] = useState(0);
+  const [responseData, setResponseData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Define user-facing steps
+  const steps = [
+    "Uploading document",
+    "Extracting text",
+    "Planning course structure",
+    "Generating detailed content",
+    "Creating quizzes",
+    "Finalizing output"
+  ];
+
+  // Advance stepIndex every few seconds while loading
+  useEffect(() => {
+    let timer: NodeJS.Timeout | undefined = undefined;
+    if (loading) {
+      setStepIndex(0);
+      timer = setInterval(() => {
+        setStepIndex((idx) => Math.min(idx + 1, steps.length - 1));
+      }, 3000);
+    } else if (timer) {
+      clearInterval(timer);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [loading]);
 
   const handleButtonClick = () => {
     fileInputRef.current?.click();
@@ -23,29 +50,26 @@ export default function Home() {
       return;
     }
 
+    setLoading(true);
+    setResponseData(null);
+    setError(null);
+
     const formData = new FormData();
     formData.append("file", file);
 
-    setLoading(true);
-    setError("");
-
     try {
-      const response = await fetch("/api/document-parser", {
+      const res = await fetch("/api/document-parser", {
         method: "POST",
         body: formData,
       });
-
-      const data = await response.json();
-
-      if (response.ok && data.modules) {
-        // Store in localStorage to access it on /course
-        localStorage.setItem("curriculumData", JSON.stringify(data));
-        router.push("/course"); // Redirect to course page
+      const data = await res.json();
+      if (res.ok) {
+        setResponseData(data);
       } else {
-        setError(data.error || "No structured content extracted.");
+        setError(data.error || "Failed to generate course.");
       }
     } catch (err) {
-      setError("Something went wrong while uploading.");
+      setError("Network error.");
     } finally {
       setLoading(false);
     }
@@ -53,18 +77,20 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
-      <section className="flex flex-col items-center gap-6 w-full max-w-2xl">
-        <h1 className="text-4xl font-bold text-center">Learn Anything</h1>
+      <section className="flex flex-col items-center gap-6 w-full max-w-lg">
+        <h1 className="text-4xl font-bold">Generate Your Course</h1>
         <p className="text-gray-600 text-center">
-          Upload a syllabus or course document to generate a custom 10-week learning plan.
+          Upload a PDF and let AI design a 10-week curriculum with detailed notes and quizzes.
         </p>
 
         <button
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
           onClick={handleButtonClick}
           disabled={loading}
+          className={`bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors font-medium ${
+            loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
+          }`}
         >
-          {loading ? "Processing..." : "Upload PDF"}
+          {loading ? 'Processing...' : 'Upload PDF'}
         </button>
 
         <input
@@ -72,12 +98,31 @@ export default function Home() {
           accept="application/pdf"
           ref={fileInputRef}
           onChange={handleFileChange}
-          style={{ display: "none" }}
+          style={{ display: 'none' }}
         />
 
+        {loading && (
+          <p className="text-blue-600 mt-4 font-medium flex items-center">
+            {steps[stepIndex]}...
+          </p>
+        )}
+
         {error && (
-          <div className="mt-4 text-red-600 text-sm bg-red-50 p-3 rounded w-full text-center">
-            {error}
+          <p className="text-red-600 mt-4">{error}</p>
+        )}
+
+        {responseData && (
+          <div className="mt-6 w-full">
+            {/* Save to localStorage and navigate to course page */}
+            <button
+              onClick={() => {
+                localStorage.setItem('curriculumData', JSON.stringify(responseData));
+                window.location.href = '/course';
+              }}
+              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+            >
+              View Generated Course
+            </button>
           </div>
         )}
       </section>

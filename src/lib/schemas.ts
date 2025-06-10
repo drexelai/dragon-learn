@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const QuizQuestionSchema = z.object({
   question: z.string().describe("A quiz question related to the subtopic"),
-  options: z.array(z.string()).describe("Multiple choice options").min(2),
+  options: z.array(z.string()).describe("Multiple choice options"),
   answer: z.string().describe("The correct answer to the question"),
 });
 
