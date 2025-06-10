@@ -1,5 +1,3 @@
-// src/app/course/[slug]/layout.tsx
-
 import { ReactNode } from "react";
 
 export default function Layout({

@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import remarkGfm from "remark-gfm";
 
 import {
   Accordion,
@@ -68,7 +69,7 @@ export default function ModulePage() {
   if (!module) return <p className="p-6 text-gray-500">Loading module...</p>;
 
   return (
-    <main className="px-6 py-10 max-w-3xl mx-auto">
+    <main className="px-8 py-10 max-w-6xl mx-auto lg:px-12">
       <div className="mb-8">
         <button
           onClick={() => router.push("/course")}
@@ -107,7 +108,7 @@ export default function ModulePage() {
             {sub.detailed_notes_md && (
               <div className="prose prose-neutral max-w-none">
                 <ReactMarkdown
-                  remarkPlugins={[remarkMath]}
+                  remarkPlugins={[remarkMath, remarkGfm]}
                   rehypePlugins={[rehypeKatex]}
                   components={{
                     code: ({ node, ...props }) => (
@@ -124,6 +125,7 @@ export default function ModulePage() {
                 >
                   {normalizeMath(sub.detailed_notes_md)}
                 </ReactMarkdown>
+
               </div>
             )}
 

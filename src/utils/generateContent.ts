@@ -11,6 +11,13 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function fixMarkdownSpacing(markdown: string): string {
+  return markdown
+    .replace(/([^\n])\n(?=[^\n])/g, "$1  \n") // Hard break for single newlines
+    .replace(/\\n/g, "\n") // Remove escaped newlines
+    .replace(/\n{3,}/g, "\n\n"); // Collapse triple+ newlines to double
+}
+
 // Retry helper: attempts fn up to `retries`, waiting `pause` ms between
 async function retry<T>(
   fn: () => Promise<T>,
@@ -83,14 +90,17 @@ export async function generateSubtopicContent(
   const response = await model.call([
     {
       role: "system",
-      content: `You are an expert course content writer. Write detailed Markdown notes only. 
+      content: `You are an expert course content writer. Respond ONLY with clean, well-structured Markdown.
 
-- Use Markdown headings, lists, and code blocks as appropriate.
-- Use LaTeX for math expressions:
-  - Wrap **inline math** with single dollar signs: \`$E = mc^2$\`
-  - Wrap **block math** with double dollar signs: \`\`\`$$E = mc^2$$\`\`\`
-- Do NOT use square brackets or parentheses for math.
-- Ensure LaTeX syntax is valid and renders correctly with KaTeX.`,
+- Use Markdown headings (##, ###, etc.) for structure.
+- Use bullet points and numbered lists when listing items.
+- Use double newlines between paragraphs.
+- Format math using LaTeX:
+  - Inline math with single dollar signs: \`$...$\`
+  - Block math with double dollar signs: \`$$...$$\`
+- Render tables using Markdown table syntax (| column | column |).
+- Never return escaped newline characters (\\n); use real newlines.
+- Avoid collapsing spacing between sections. Keep clear breaks between topics, equations, examples, and explanations.`,
     },
     {
       role: "user",
@@ -107,7 +117,10 @@ export async function generateSubtopicContent(
   } else {
     detailed = String(response.content);
   }
-  return { title: subtopicTitle, detailed_notes_md: detailed };
+  return {
+    title: subtopicTitle,
+    detailed_notes_md: fixMarkdownSpacing(detailed),
+  };
 }
 
 /**
