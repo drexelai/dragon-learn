@@ -2,10 +2,7 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { z } from "zod";
 import pLimit from "p-limit";
-import {
-  SubtopicSchema,
-  QuizQuestionSchema,
-} from "@/lib/schemas";
+import { SubtopicSchema, QuizQuestionSchema } from "@/lib/schemas";
 
 const model = new ChatOpenAI({ modelName: "gpt-4o-mini", temperature: 0.3 });
 
@@ -84,14 +81,29 @@ export async function generateSubtopicContent(
   subtopicTitle: string
 ): Promise<{ title: string; detailed_notes_md: string }> {
   const response = await model.call([
-    { role: "system", content: "You are an expert course content writer. Provide detailed markdown notes only." },
-    { role: "user", content: `Generate in-depth markdown notes for the subtopic "${subtopicTitle}" under the module "${moduleTitle}". Include examples, code snippets, or math as needed.` },
+    {
+      role: "system",
+      content: `You are an expert course content writer. Write detailed Markdown notes only. 
+
+- Use Markdown headings, lists, and code blocks as appropriate.
+- Use LaTeX for math expressions:
+  - Wrap **inline math** with single dollar signs: \`$E = mc^2$\`
+  - Wrap **block math** with double dollar signs: \`\`\`$$E = mc^2$$\`\`\`
+- Do NOT use square brackets or parentheses for math.
+- Ensure LaTeX syntax is valid and renders correctly with KaTeX.`,
+    },
+    {
+      role: "user",
+      content: `Generate in-depth markdown notes for the subtopic "${subtopicTitle}" under the module "${moduleTitle}". Include examples, code snippets, or math as needed.`,
+    },
   ]);
   let detailed: string;
   if (typeof response.content === "string") {
     detailed = response.content;
   } else if (Array.isArray(response.content)) {
-    detailed = response.content.map((c: any) => (typeof c === "string" ? c : c.text || "")).join("");
+    detailed = response.content
+      .map((c: any) => (typeof c === "string" ? c : c.text || ""))
+      .join("");
   } else {
     detailed = String(response.content);
   }
